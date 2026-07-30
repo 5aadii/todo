@@ -5,6 +5,9 @@ from datetime import datetime, date
 from uuid import uuid4
 from streamlit_calendar import calendar
 
+import streamlit.components.v1 as components
+
+
 from cleaning import clean_text
 from services.openrouter_client import analyse_task, get_focus_plan, chat_task_turn, suggest_reschedule, get_mood_picks, get_api_key, get_model_name, ALLOWED_CATEGORIES
 from services.storage_service import save_tasks, load_tasks
@@ -35,6 +38,152 @@ def highlight_task_text(task):
     return text
 
 st.set_page_config(page_title="AI Task Coach", layout="wide")
+
+GLASS_CSS = """
+<style>
+.stApp {
+    background: linear-gradient(160deg, #0d0d0f 0%, #16161c 100%);
+}
+
+.blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: 0;
+    pointer-events: none;
+    animation: float 22s ease-in-out infinite;
+}
+.blob1 { width: 480px; height: 480px; background: #d4a94e; opacity: 0.28; top: -120px; left: -100px; }
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(35px, -25px); }
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(20px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+}
+
+.stButton > button, div[data-testid="stAlert"], section[data-testid="stSidebar"] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 16px !important;
+}
+
+.stButton > button {
+    border-radius: 999px !important;
+    padding: 0.5rem 1.4rem !important;
+    font-weight: 600 !important;
+}
+.stButton > button:hover {
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    background: rgba(255,255,255,0.1) !important;
+}
+
+h1, h2, h3 {
+    font-weight: 700 !important;
+    letter-spacing: -0.01em;
+}
+
+.main .block-container { position: relative; z-index: 1; }
+
+
+/* Glassy dropdowns with a subtle shine */
+div[data-baseweb="select"] > div {
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 12px !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.25) !important;
+    transition: border 0.2s ease, background 0.2s ease;
+}
+div[data-baseweb="select"] > div:hover {
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    background: rgba(255, 255, 255, 0.09) !important;
+}
+
+/* The dropdown's open menu panel */
+div[data-baseweb="popover"] ul {
+    background: rgba(22, 22, 28, 0.85) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 12px !important;
+}
+
+/* Text inputs and date picker get the same glass treatment */
+div[data-testid="stTextInput"] input,
+div[data-testid="stDateInput"] input {
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 12px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+
+</style>
+
+<div class="blob blob1"></div>
+"""
+st.markdown(GLASS_CSS, unsafe_allow_html=True)
+
+CURSOR_BLOB_JS = """
+<script>
+(function() {
+    const doc = window.parent.document;
+    if (doc.getElementById('cursor-blob')) return;
+
+    const blob = doc.createElement('div');
+    blob.id = 'cursor-blob';
+    blob.style.position = 'fixed';
+    blob.style.top = '0px';
+    blob.style.left = '0px';
+    blob.style.width = '160px';
+    blob.style.height = '160px';
+    blob.style.borderRadius = '50%';
+    blob.style.background = 'radial-gradient(circle, rgba(212,169,78,0.35), rgba(212,169,78,0) 70%)';
+    blob.style.filter = 'blur(30px)';
+    blob.style.pointerEvents = 'none';
+    blob.style.zIndex = '0';
+    blob.style.transform = 'translate(-50%, -50%)';
+    doc.body.appendChild(blob);
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let blobX = mouseX;
+    let blobY = mouseY;
+
+    doc.addEventListener('mousemove', function(e) {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    function animate() {
+        blobX += (mouseX - blobX) * 0.08;
+        blobY += (mouseY - blobY) * 0.08;
+        blob.style.left = blobX + 'px';
+        blob.style.top = blobY + 'px';
+        requestAnimationFrame(animate);
+    }
+    animate();
+})();
+</script>
+"""
+components.html(CURSOR_BLOB_JS, height=0)
+
+
 st.title("AI Task Coach")
 st.caption("A task manager that also collects human-reviewed AI training data.")
 
@@ -373,44 +522,53 @@ if page == "Tasks":
         st.rerun()
 
     st.divider()
-    st.subheader("Add a Task")
-    with st.form("add_task_form", clear_on_submit=True):
-        new_task_text = st.text_input("Task:")
-        category = st.selectbox("Category", CATEGORIES)
-        priority = st.selectbox("Priority", PRIORITIES)
-        due_date = st.date_input("Due date")
-        submitted = st.form_submit_button("Add Task")
-
-        if submitted and new_task_text.strip() != "":
-            cleaned_preview = clean_text(new_task_text)
-
-            if not cleaned_preview["sanitized_task"]:
-                st.warning("This task has no meaningful content after cleaning. Please try again.")
-            else:
-                if is_duplicate(st.session_state.tasks, cleaned_preview["sanitized_task"]):
-                    st.warning("Heads up — a very similar task already exists. Added it anyway.")
-
-                st.session_state.tasks.append(
-                    new_task_dict(new_task_text, category, priority, due_date)
-                )
-                st.success(f"Added: {new_task_text}")
-
-    st.subheader("Your Tasks")
 
     if not st.session_state.tasks:
         st.write("No tasks yet.")
 
-    search_query = st.text_input("Search tasks:")
+    col_left, col_right = st.columns(2)
 
-    col_a, col_b, col_c = st.columns(3)
-    sort_by = st.selectbox("Sort by", ["Creation date", "Due date", "Priority", "Estimated duration"])
+    with col_left:
+        with st.container(border=True):
+            st.subheader("Add a Task")
+            with st.form("add_task_form", clear_on_submit=True):
+                new_task_text = st.text_input("Task:")
+                cat_col, pri_col = st.columns(2)
+                with cat_col:
+                    category = st.selectbox("Category", CATEGORIES)
+                with pri_col:
+                    priority = st.selectbox("Priority", PRIORITIES)
+                due_date = st.date_input("Due date")
+                submitted = st.form_submit_button("Add Task")
 
-    with col_a:
-        status_filter = st.selectbox("Status", ["all", "pending", "completed"])
-    with col_b:
-        category_filter = st.selectbox("Category", ["all"] + CATEGORIES)
-    with col_c:
-        priority_filter = st.selectbox("Priority", ["all"] + PRIORITIES)
+                if submitted and new_task_text.strip() != "":
+                    cleaned_preview = clean_text(new_task_text)
+
+                    if not cleaned_preview["sanitized_task"]:
+                        st.warning("This task has no meaningful content after cleaning. Please try again.")
+                    else:
+                        if is_duplicate(st.session_state.tasks, cleaned_preview["sanitized_task"]):
+                            st.warning("Heads up — a very similar task already exists. Added it anyway.")
+
+                        st.session_state.tasks.append(
+                            new_task_dict(new_task_text, category, priority, due_date)
+                        )
+                        st.success(f"Added: {new_task_text}")
+
+    with col_right:
+        with st.container(border=True):
+            st.subheader("Search Your Tasks")
+            search_query = st.text_input("Search tasks:")
+
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                status_filter = st.selectbox("Status", ["all", "pending", "completed"])
+            with col_b:
+                category_filter = st.selectbox("Category", ["all"] + CATEGORIES)
+            with col_c:
+                priority_filter = st.selectbox("Priority", ["all"] + PRIORITIES)
+
+            sort_by = st.selectbox("Sort by", ["Creation date", "Due date", "Priority", "Estimated duration"])
 
     filtered_tasks = st.session_state.tasks
 
@@ -443,17 +601,21 @@ if page == "Tasks":
     pending_tasks = [t for t in filtered_tasks if not t["done"]]
     completed_tasks = [t for t in filtered_tasks if t["done"]]
 
-    st.markdown("### Pending")
-    if not pending_tasks:
-        st.caption("Nothing pending.")
-    for task in pending_tasks:
-        render_task_row(task)
+    col_left2, col_right2 = st.columns(2)
 
-    st.markdown("### Completed")
-    if not completed_tasks:
-        st.caption("Nothing completed yet.")
-    for task in completed_tasks:
-        render_task_row(task)
+    with col_left2:
+        st.markdown("### Pending")
+        if not pending_tasks:
+            st.caption("Nothing pending.")
+        for task in pending_tasks:
+            render_task_row(task)
+
+    with col_right2:
+        st.markdown("### Completed")
+        if not completed_tasks:
+            st.caption("Nothing completed yet.")
+        for task in completed_tasks:
+            render_task_row(task)
 
     if any(t["done"] for t in st.session_state.tasks):
         st.divider()
@@ -479,84 +641,86 @@ if page == "Tasks":
 # TAB 2: AI TASK COACH
 # ============================================================
 if page == "AI Task Coach":
-    st.subheader("AI Analysis")
-
     pending_only = [t for t in st.session_state.tasks if not t["done"]]
-
     needs_analysis = [t for t in pending_only if t["ai_status"] in ("not_analyzed", "failed")]
     already_reviewed = [t for t in pending_only if t["human_verified"]]
 
-    if not pending_only:
-        st.caption("No pending tasks. Add one in the Tasks tab first.")
+    col_left, col_right = st.columns(2)
 
-    if needs_analysis:
-        st.markdown("#### Not yet categorized")
-        st.caption("These were added manually. Describe them in the chat on the Tasks tab to get AI categorization.")
-        for task in needs_analysis:
-            st.write(f"- {task['raw']}")
-    if already_reviewed:
-        st.markdown("#### Already reviewed (pending tasks)")
-        for task in already_reviewed:
-            st.write(
-                f"**{task['raw']}** — Final: {task['final_category']} | {task['final_priority']} | "
-                f"{task['final_estimated_minutes']} min"
-            )
-            if st.button("Force Reanalyse", key=f"coach_force_{task['task_id']}", disabled=not AI_CONFIGURED):
-                run_ai_analysis(task, force=True)
-                st.rerun()
+    with col_left:
+        st.subheader("AI Daily Focus Plan")
 
-    st.divider()
-    st.subheader("AI Daily Focus Plan")
+        if st.button("Plan My Focus Session", disabled=not AI_CONFIGURED):
+            if not pending_only:
+                st.warning("No pending tasks to plan.")
+            else:
+                with st.spinner("Planning your focus session..."):
+                    result = get_focus_plan(pending_only)
+                if result["success"]:
+                    st.session_state.focus_plan = result["data"]
+                else:
+                    st.warning(result["message"])
+                    st.session_state.focus_plan = None
 
-    if st.button("Plan My Focus Session", disabled=not AI_CONFIGURED):
+        if st.session_state.focus_plan:
+            plan = st.session_state.focus_plan
+            st.write(plan["summary"])
+
+            tasks_by_id = {t["task_id"]: t for t in st.session_state.tasks}
+            for item in sorted(plan["focus_plan"], key=lambda x: x.get("position", 99)):
+                task = tasks_by_id.get(item["task_id"])
+                if task:
+                    st.write(f"**{item.get('position')}. {task['raw']}** — {item.get('reason')}")
+
+        st.divider()
+        st.subheader("How are you feeling?")
+        mood = st.selectbox("Mood", ["Energetic", "Focused", "Tired", "Overwhelmed", "Bored"])
+        available_time = st.selectbox("Time available", ["15 minutes", "30 minutes", "1 hour", "A few hours", "All day"])
+
+        if st.button("Pick tasks for me", disabled=not AI_CONFIGURED):
+            mood_pending = [t for t in st.session_state.tasks if not t["done"]]
+            if not mood_pending:
+                st.warning("No pending tasks to pick from.")
+            else:
+                with st.spinner("Matching tasks to how you feel..."):
+                    result = get_mood_picks(mood_pending, mood, available_time)
+                if result["success"]:
+                    st.session_state.mood_picks = result["data"]
+                else:
+                    st.warning(result["message"])
+                    st.session_state.mood_picks = None
+
+        if st.session_state.mood_picks:
+            mood_data = st.session_state.mood_picks
+            st.write(mood_data["summary"])
+            tasks_by_id_mood = {t["task_id"]: t for t in st.session_state.tasks}
+            for pick in mood_data["picks"]:
+                task = tasks_by_id_mood.get(pick["task_id"])
+                if task:
+                    render_task_row(task, show_ai_status=False)
+                    st.caption(f"💭 {pick['reason']}")
+
+    with col_right:
+        st.subheader("AI Analysis")
+
         if not pending_only:
-            st.warning("No pending tasks to plan.")
-        else:
-            with st.spinner("Planning your focus session..."):
-                result = get_focus_plan(pending_only)
-            if result["success"]:
-                st.session_state.focus_plan = result["data"]
-            else:
-                st.warning(result["message"])
-                st.session_state.focus_plan = None
+            st.caption("No pending tasks. Add one in the Tasks tab first.")
 
-    if st.session_state.focus_plan:
-        plan = st.session_state.focus_plan
-        st.write(plan["summary"])
-
-        tasks_by_id = {t["task_id"]: t for t in st.session_state.tasks}
-        for item in sorted(plan["focus_plan"], key=lambda x: x.get("position", 99)):
-            task = tasks_by_id.get(item["task_id"])
-            if task:
-                st.write(f"**{item.get('position')}. {task['raw']}** — {item.get('reason')}")
-
-    st.divider()
-    st.subheader("How are you feeling?")
-    mood = st.selectbox("Mood", ["Energetic", "Focused", "Tired", "Overwhelmed", "Bored"])
-    available_time = st.selectbox("Time available", ["15 minutes", "30 minutes", "1 hour", "A few hours", "All day"])
-
-    if st.button("Pick tasks for me", disabled=not AI_CONFIGURED):
-        mood_pending = [t for t in st.session_state.tasks if not t["done"]]
-        if not mood_pending:
-            st.warning("No pending tasks to pick from.")
-        else:
-            with st.spinner("Matching tasks to how you feel..."):
-                result = get_mood_picks(mood_pending, mood, available_time)
-            if result["success"]:
-                st.session_state.mood_picks = result["data"]
-            else:
-                st.warning(result["message"])
-                st.session_state.mood_picks = None
-
-    if st.session_state.mood_picks:
-        mood_data = st.session_state.mood_picks
-        st.write(mood_data["summary"])
-        tasks_by_id_mood = {t["task_id"]: t for t in st.session_state.tasks}
-        for pick in mood_data["picks"]:
-            task = tasks_by_id_mood.get(pick["task_id"])
-            if task:
-                render_task_row(task, show_ai_status=False)
-                st.caption(f"💭 {pick['reason']}")
+        if needs_analysis:
+            st.markdown("#### Not yet categorized")
+            st.caption("These were added manually. Describe them in the chat on the Tasks tab to get AI categorization.")
+            for task in needs_analysis:
+                st.write(f"- {task['raw']}")
+        if already_reviewed:
+            st.markdown("#### Already reviewed (pending tasks)")
+            for task in already_reviewed:
+                st.write(
+                    f"**{task['raw']}** — Final: {task['final_category']} | {task['final_priority']} | "
+                    f"{task['final_estimated_minutes']} min"
+                )
+                if st.button("Force Reanalyse", key=f"coach_force_{task['task_id']}", disabled=not AI_CONFIGURED):
+                    run_ai_analysis(task, force=True)
+                    st.rerun()
 
 
 
